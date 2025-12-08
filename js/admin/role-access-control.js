@@ -118,8 +118,9 @@ function checkPageAccess() {
     console.warn('❌ Access denied:', currentPage, 'for role:', currentUser.role);
     alert(`Access Denied!\n\nYou don't have permission to access this page.\n\nRole: ${currentUser.role}\nPage: ${currentPage}`);
     
-    // Redirect to dashboard
-    window.location.href = 'admin-dashboard.html';
+    // Log out and redirect to login page
+    localStorage.removeItem('hms_user');
+    window.location.href = 'admin-login.html';
     return false;
 }
 
@@ -142,19 +143,40 @@ function filterMenuByRole() {
         return;
     }
     
+    // If role not in ROLE_MENUS, don't filter (allow all by default)
+    if (!allowedPages) {
+        console.log('⚠️ Role not in ROLE_MENUS - showing all menu items by default');
+        return;
+    }
+    
     // Find all menu links
-    const menuLinks = document.querySelectorAll('.sidebar a, .menu a, nav a');
+    const menuLinks = document.querySelectorAll('.sidebar a, .menu a, nav a, .menu-item a');
+    
+    let hiddenCount = 0;
     
     menuLinks.forEach(link => {
         const href = link.getAttribute('href');
         if (!href) return;
         
         // Get just the filename
-        const filename = href.split('/').pop();
+        const filename = href.split('/').pop().split('?')[0]; // Remove query params too
         
-        // Check if this page is allowed for this role
-        if (!allowedPages.includes(filename)) {
-            // Hide this menu item
+        // Skip empty hrefs or anchors
+        if (!filename || filename === '#') return;
+        
+        // Check if this page is in PAGE_ACCESS (has restrictions)
+        const pageHasRestrictions = PAGE_ACCESS[filename];
+        
+        if (!pageHasRestrictions) {
+            // Page not in access list - allow by default
+            return;
+        }
+        
+        // Check if user's role is allowed for this page
+        const userCanAccess = pageHasRestrictions.includes(userRole);
+        
+        if (!userCanAccess) {
+            // User cannot access - hide this menu item
             link.style.display = 'none';
             
             // Also hide parent li if it exists
@@ -163,11 +185,18 @@ function filterMenuByRole() {
                 parentLi.style.display = 'none';
             }
             
+            // Hide parent menu-item if it exists
+            const parentMenuItem = link.closest('.menu-item');
+            if (parentMenuItem) {
+                parentMenuItem.style.display = 'none';
+            }
+            
+            hiddenCount++;
             console.log('🚫 Hiding menu item:', filename, 'for role:', userRole);
         }
     });
     
-    console.log('✅ Menu filtered for role:', userRole);
+    console.log('✅ Menu filtered for role:', userRole, '- Hidden', hiddenCount, 'items');
 }
 
 /**
