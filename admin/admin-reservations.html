@@ -12,12 +12,8 @@
             max-width: 100%;
             overflow-x: hidden;
         }
-.main-content {
-            max-width: 100%;
-            overflow-x: hidden;
-        }
     .top-bar {
-        margin-top: 50px;
+        margin-top: 5px;
     }
 .view-switcher {
     display: flex;
@@ -49,6 +45,12 @@
 .view-btn.active {
     background: #667eea;
     color: white;
+}
+
+@media (max-width: 768px) {
+    .top-bar {
+        margin-top: 50px;
+    }
 }
 </style>
 </head>
@@ -145,14 +147,14 @@
     <main class="main-content">
         <!-- Top Bar -->
         <header class="top-bar">
-            
                 <h1 class="page-title">Reservations - List View</h1>
             </div>
             <div class="top-bar-right">
+                <div class="top-bar-right">
                 <div class="user-info">
-                    <span class="user-icon">👤</span>
-                    <span class="user-name" id="userName">Welcome, Admin</span>
+                    <span class="user-name-role">User Name (Role)</span>
                 </div>
+            </div>
             </div>
         </header>
 
@@ -246,9 +248,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../js/admin/admin-script.js"></script>
     <script src="../js/admin/admin-reservations.js"></script>
-
-    <script>
-
-</script>
+    <script src="../js/admin/user-display-fix.js"></script>
 </body>
 </html>
