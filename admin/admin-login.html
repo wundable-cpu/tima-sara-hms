@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login - Tima Sara Hotel</title>
+    
     <style>
         * {
             margin: 0;
@@ -114,6 +115,8 @@
             color: #4a5568;
         }
     </style>
+    <!-- Password Change Styles -->
+    <link rel="stylesheet" href="../css/password-change-styles.css">
 </head>
 <body>
     <div class="login-container">
@@ -202,7 +205,8 @@
                     'manager': 'admin-dashboard.html',
                     'front_desk': 'admin-reservations.html',
                     'restaurant': 'admin-pos.html',
-                    'housekeeping': 'admin-housekeeping.html'
+                    'housekeeping': 'admin-housekeeping.html',
+                    'supervisor': 'admin-dashboard.html'
                 };
                 
                 window.location.href = redirects[user.role] || 'admin-dashboard.html';
@@ -214,6 +218,8 @@
             }
         });
     </script>
-    <script src="../js/admin/user-display-fix.js"></script>
+   
+
+    <script src="../js/admin/admin-script.js"></script>
 </body>
 </html>

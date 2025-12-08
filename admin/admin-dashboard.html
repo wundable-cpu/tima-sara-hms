@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Tima Sara Hotel Management</title>
+    
     <link rel="stylesheet" href="../css/admin-style.css">
     <style>
         /* Responsive Dashboard Fixes */
@@ -55,6 +56,17 @@
         }
         }
     </style>
+    <!-- Password Change Styles -->
+    <link rel="stylesheet" href="../css/password-change-styles.css">
+    <div class="header-actions">
+        <button onclick="showPasswordChangeModal()" class="btn-icon" title="Change Password">
+           <i class="fas fa-key"></i>
+        </button>
+        <button onclick="logout()" class="btn-icon" title="Logout">
+           <i class="fas fa-sign-out-alt"></i>
+        </button>
+    </div>
+</head>
 </head>
 <body class="dashboard-page">
     <!-- Mobile Header (visible only on mobile) -->
@@ -278,5 +290,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="../js/admin/admin-dashboard.js"></script>
     <script src="../js/admin/user-display-fix.js"></script>
+     <!-- Role-Based Access Control -->
+    <script src="../js/admin/role-access-control.js"></script>
+
+    <!-- Password Change System -->
+    <script src="../js/admin/password-change.js"></script>
 </body>
 </html>
