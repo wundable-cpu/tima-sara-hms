@@ -1,54 +1,93 @@
 // ===================================================================
-// ROLE-BASED ACCESS CONTROL SYSTEM - DEBUG VERSION
-// Restricts access to pages based on user role
+// DATABASE-DRIVEN ROLE ACCESS CONTROL
+// Reads permissions from role_permissions table in Supabase
 // ===================================================================
 
-console.log('🔐 ROLE ACCESS CONTROL LOADED');
+console.log('🔐 DATABASE-DRIVEN ACCESS CONTROL LOADED');
+
+// Cache for permissions (avoid repeated database calls)
+let permissionsCache = null;
+let currentUserRole = null;
 
 /**
- * PAGE ACCESS RULES
- * Define which roles can access which pages
+ * Get Supabase client (reuse existing or create new)
  */
-const PAGE_ACCESS = {
-    // Admin & Supervisor - Full Access
-    'admin-dashboard.html': ['admin', 'manager', 'supervisor', 'front_desk', 'restaurant', 'housekeeping'],
-    'admin-analytics.html': ['admin', 'manager', 'supervisor'],
-    'admin-reports.html': ['admin', 'manager', 'supervisor'],
-    'admin-settings.html': ['admin'], // Only admin
+async function getSupabaseClient() {
+    if (typeof supabase !== 'undefined' && supabase && typeof supabase.from === 'function') {
+        return supabase;
+    }
     
-    // Reservations
-    'admin-reservations.html': ['admin', 'manager', 'supervisor', 'front_desk'],
-    'admin-reservations-calendar.html': ['admin', 'manager', 'supervisor', 'front_desk'],
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+        return supabaseClient;
+    }
     
-    // Guests
-    'admin-guests.html': ['admin', 'manager', 'supervisor', 'front_desk'],
+    // Create new client
+    const SUPABASE_URL = 'https://yglehirjsxaxvrpfbvse.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnbGVoaXJqc3hheHZycGZidnNlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjA4MDU0MCwiZXhwIjoyMDc3NjU2NTQwfQ.Gkvs5_Upf0WVnuC7BM9rOyGI2GyaR1Ar4tYMXoIa_g8';
     
-    // Rooms
-    'admin-rooms.html': ['admin', 'manager', 'supervisor', 'front_desk', 'housekeeping'],
-    
-    // Housekeeping
-    'admin-housekeeping.html': ['admin', 'manager', 'supervisor', 'housekeeping'],
-    
-    // Restaurant & Bar
-    'admin-menu.html': ['admin', 'manager', 'supervisor', 'restaurant'],
-    'admin-pos.html': ['admin', 'manager', 'supervisor', 'restaurant'],
-    
-    // Communications
-    'admin-communications.html': ['admin', 'manager', 'supervisor', 'front_desk'],
-    'admin-sms.html': ['admin', 'manager', 'supervisor', 'front_desk'],
-    'admin-whatsapp.html': ['admin', 'manager', 'supervisor', 'front_desk'],
-    
-    // Invoices
-    'admin-invoices.html': ['admin', 'manager', 'supervisor', 'front_desk'],
-    
-    // Maintenance
-    'admin-maintenance.html': ['admin', 'manager', 'supervisor', 'housekeeping'],
-};
+    return window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+}
 
 /**
- * Check if current user has access to current page
+ * Load user permissions from database
  */
-function checkPageAccess() {
+async function loadUserPermissions(userRole) {
+    console.log('📥 Loading permissions for role:', userRole);
+    
+    try {
+        const client = await getSupabaseClient();
+        
+        const { data, error } = await client
+            .from('role_permissions')
+            .select('*')
+            .eq('role', userRole);
+        
+        if (error) {
+            console.error('❌ Error loading permissions:', error);
+            return null;
+        }
+        
+        console.log('✅ Loaded', data.length, 'permissions for', userRole);
+        
+        // Convert to easier lookup format
+        const permissions = {};
+        data.forEach(perm => {
+            permissions[perm.page] = {
+                can_view: perm.can_view,
+                can_edit: perm.can_edit,
+                can_delete: perm.can_delete
+            };
+        });
+        
+        return permissions;
+        
+    } catch (error) {
+        console.error('❌ Exception loading permissions:', error);
+        return null;
+    }
+}
+
+/**
+ * Map page filenames to database page names
+ */
+function getPageName(filename) {
+    // Remove .html extension
+    const name = filename.replace('.html', '').replace('admin-', '');
+    
+    // Handle special cases
+    const mappings = {
+        'reservations-calendar': 'reservations',
+        'pos': 'pos',
+        'menu': 'menu'
+    };
+    
+    return mappings[name] || name;
+}
+
+/**
+ * Check if current user can access current page
+ */
+async function checkPageAccess() {
     console.log('🔍 === CHECKING PAGE ACCESS ===');
     
     const currentUser = JSON.parse(localStorage.getItem('hms_user'));
@@ -59,51 +98,70 @@ function checkPageAccess() {
         return false;
     }
     
-    console.log('👤 Current user:', currentUser.name, '| Role:', currentUser.role);
+    console.log('👤 Current user:', currentUser.name || currentUser.full_name, '| Role:', currentUser.role);
     
-    // Get current page filename
+    // Get current page
     const currentPage = window.location.pathname.split('/').pop();
     console.log('📄 Current page:', currentPage);
     
-    // Login page is always accessible
-    if (currentPage === 'admin-login.html') {
-        console.log('✅ Login page - access granted');
+    // Login page always accessible
+    if (currentPage === 'admin-login.html' || currentPage === 'index.html' || currentPage === '') {
+        console.log('✅ Public page - access granted');
         return true;
     }
     
-    // Check if page has access restrictions
-    const allowedRoles = PAGE_ACCESS[currentPage];
-    console.log('🔐 Page restrictions:', allowedRoles || 'None (unrestricted)');
+    // Load permissions if not cached or role changed
+    if (!permissionsCache || currentUserRole !== currentUser.role) {
+        permissionsCache = await loadUserPermissions(currentUser.role);
+        currentUserRole = currentUser.role;
+    }
     
-    if (!allowedRoles) {
-        // Page not in list - allow by default (for new pages)
-        console.log('ℹ️ Page not in access list - allowing access by default');
+    if (!permissionsCache) {
+        console.error('❌ Could not load permissions - allowing access by default');
         return true;
     }
     
-    // Check if user's role is allowed
-    const hasAccess = allowedRoles.includes(currentUser.role);
-    console.log('🎯 User role in allowed list?', hasAccess);
+    // Map filename to page name
+    const pageName = getPageName(currentPage);
+    console.log('🗂️ Page name:', pageName);
     
-    if (hasAccess) {
-        console.log('✅ ACCESS GRANTED:', currentPage, 'for role:', currentUser.role);
+    // Check permissions
+    const pagePerms = permissionsCache[pageName];
+    
+    if (!pagePerms) {
+        console.warn('⚠️ Page not in permissions table - allowing access by default');
         return true;
     }
     
-    // Access denied!
-    console.warn('❌ ACCESS DENIED:', currentPage, 'for role:', currentUser.role);
-    alert(`Access Denied!\n\nYou don't have permission to access this page.\n\nRole: ${currentUser.role}\nPage: ${currentPage}`);
+    if (pagePerms.can_view) {
+        console.log('✅ ACCESS GRANTED:', pageName, 'for role:', currentUser.role);
+        
+        // Store permissions in global for use by other scripts
+        window.currentPagePermissions = pagePerms;
+        
+        return true;
+    }
     
-    // Log out and redirect to login page
-    localStorage.removeItem('hms_user');
-    window.location.href = 'admin-login.html';
+    // Access denied
+    console.warn('❌ ACCESS DENIED:', pageName, 'for role:', currentUser.role);
+    alert(`Access Denied!\n\nYou don't have permission to access this page.\n\nRole: ${currentUser.role}\nPage: ${pageName}`);
+    
+    // Redirect to dashboard or login
+    if (pageName === 'dashboard') {
+        // If even dashboard is denied, logout
+        localStorage.removeItem('hms_user');
+        window.location.href = 'admin-login.html';
+    } else {
+        window.location.href = 'admin-dashboard.html';
+    }
+    
     return false;
 }
 
 /**
- * Filter menu items based on user role
+ * Filter menu items based on permissions
  */
-function filterMenuByRole() {
+async function filterMenuByRole() {
     console.log('🔍 === FILTERING MENU ===');
     
     const currentUser = JSON.parse(localStorage.getItem('hms_user'));
@@ -113,80 +171,66 @@ function filterMenuByRole() {
         return;
     }
     
-    const userRole = currentUser.role;
-    console.log('👤 Filtering menu for role:', userRole);
+    console.log('👤 Filtering menu for role:', currentUser.role);
     
-    // Admin, Manager, Supervisor see everything
-    if (userRole === 'admin' || userRole === 'manager' || userRole === 'supervisor') {
-        console.log('✅ FULL ACCESS ROLE - Showing all menu items');
-        console.log('   (Admin, Manager, Supervisor see everything)');
+    // Load permissions if not cached
+    if (!permissionsCache || currentUserRole !== currentUser.role) {
+        permissionsCache = await loadUserPermissions(currentUser.role);
+        currentUserRole = currentUser.role;
+    }
+    
+    if (!permissionsCache) {
+        console.error('❌ Could not load permissions - showing all menu items');
         return;
     }
     
-    console.log('🔒 LIMITED ACCESS ROLE - Filtering menu...');
+    console.log('📋 User has access to', Object.keys(permissionsCache).length, 'pages');
     
-    // Find all menu links with multiple selectors
+    // Find all menu links
     const selectors = [
         '.sidebar a',
-        '.menu a', 
-        'nav a', 
+        '.menu a',
+        'nav a',
         '.menu-item a',
         '.nav-link',
         '.sidebar-link',
-        'aside a'
+        'aside a',
+        '.main-menu a'
     ];
     
     const allLinks = document.querySelectorAll(selectors.join(', '));
-    console.log('📋 Total menu links found:', allLinks.length);
+    console.log('🔗 Found', allLinks.length, 'menu links');
     
     if (allLinks.length === 0) {
-        console.warn('⚠️ NO MENU LINKS FOUND! Check your HTML selectors.');
-        console.log('💡 Try inspecting your menu HTML and updating selectors.');
+        console.warn('⚠️ NO MENU LINKS FOUND! Menu may not be loaded yet.');
         return;
     }
     
-    let totalLinks = 0;
-    let hiddenLinks = 0;
-    let visibleLinks = 0;
+    let hiddenCount = 0;
+    let visibleCount = 0;
     
     allLinks.forEach((link, index) => {
         const href = link.getAttribute('href');
-        if (!href) {
-            console.log(`   Link ${index + 1}: No href - skipping`);
+        if (!href || href === '#' || href === '') {
             return;
         }
         
-        totalLinks++;
-        
-        // Get just the filename
+        // Get filename and convert to page name
         const filename = href.split('/').pop().split('?')[0].split('#')[0];
+        const pageName = getPageName(filename);
         
-        // Skip empty hrefs or anchors
-        if (!filename || filename === '#' || filename === '') {
-            console.log(`   Link ${index + 1}: Empty/anchor link - skipping`);
-            return;
-        }
+        // Check if user has view permission
+        const hasPermission = permissionsCache[pageName]?.can_view;
         
-        // Check if this page has restrictions
-        const pageHasRestrictions = PAGE_ACCESS[filename];
-        
-        if (!pageHasRestrictions) {
-            // No restrictions - show it
-            console.log(`   Link ${index + 1}: ${filename} - NO RESTRICTIONS (visible)`);
-            visibleLinks++;
-            return;
-        }
-        
-        // Check if user can access this page
-        const userCanAccess = pageHasRestrictions.includes(userRole);
-        
-        if (userCanAccess) {
-            console.log(`   Link ${index + 1}: ${filename} - ALLOWED (visible)`);
-            visibleLinks++;
+        if (hasPermission) {
+            // User can view this page - keep visible
+            visibleCount++;
+            console.log(`   ✅ ${pageName} - visible`);
         } else {
-            console.log(`   Link ${index + 1}: ${filename} - DENIED (hiding)`);
+            // User cannot view - hide it
+            hiddenCount++;
+            console.log(`   🚫 ${pageName} - hiding`);
             
-            // Hide the link
             link.style.display = 'none';
             
             // Hide parent elements
@@ -195,36 +239,60 @@ function filterMenuByRole() {
                 parentLi.style.display = 'none';
             }
             
-            const parentMenuItem = link.closest('.menu-item');
+            const parentMenuItem = link.closest('.menu-item, .nav-item');
             if (parentMenuItem) {
                 parentMenuItem.style.display = 'none';
             }
-            
-            hiddenLinks++;
         }
     });
     
-    console.log('📊 MENU FILTERING SUMMARY:');
-    console.log('   Total links processed:', totalLinks);
-    console.log('   Visible links:', visibleLinks);
-    console.log('   Hidden links:', hiddenLinks);
-    console.log('✅ Menu filtering complete');
+    console.log('📊 Menu filtering complete:');
+    console.log('   Visible:', visibleCount);
+    console.log('   Hidden:', hiddenCount);
 }
 
 /**
- * Initialize access control on page load
+ * Show/hide action buttons based on permissions
  */
-function initializeAccessControl() {
-    console.log('🚀 === INITIALIZING ACCESS CONTROL ===');
+function filterActionButtons() {
+    if (!window.currentPagePermissions) {
+        return;
+    }
     
-    // Check page access first
-    const hasAccess = checkPageAccess();
+    const perms = window.currentPagePermissions;
+    
+    // Hide edit buttons if can't edit
+    if (!perms.can_edit) {
+        const editButtons = document.querySelectorAll('.btn-edit, [data-action="edit"], .edit-btn');
+        editButtons.forEach(btn => btn.style.display = 'none');
+    }
+    
+    // Hide delete buttons if can't delete
+    if (!perms.can_delete) {
+        const deleteButtons = document.querySelectorAll('.btn-delete, [data-action="delete"], .delete-btn');
+        deleteButtons.forEach(btn => btn.style.display = 'none');
+    }
+    
+    console.log('✅ Action buttons filtered:', 
+                'Edit:', perms.can_edit ? 'visible' : 'hidden',
+                'Delete:', perms.can_delete ? 'visible' : 'hidden');
+}
+
+/**
+ * Initialize access control
+ */
+async function initializeAccessControl() {
+    console.log('🚀 === INITIALIZING DATABASE-DRIVEN ACCESS CONTROL ===');
+    
+    // Check page access
+    const hasAccess = await checkPageAccess();
     
     if (hasAccess) {
-        // Wait a moment for menu to load, then filter
-        setTimeout(() => {
-            filterMenuByRole();
-        }, 100);
+        // Filter menu (wait a bit for menu to load)
+        setTimeout(async () => {
+            await filterMenuByRole();
+            filterActionButtons();
+        }, 200);
     }
     
     console.log('✅ Access control initialization complete');
