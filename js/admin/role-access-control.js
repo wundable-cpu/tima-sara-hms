@@ -23,7 +23,7 @@ async function getSupabaseClient() {
     
     // Create new client
     const SUPABASE_URL = 'https://yglehirjsxaxvrpfbvse.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnbGVoaXJqc3hheHZycGZidnNlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjA4MDU0MCwiZXhwIjoyMDc3NjU2NTQwfQ.Gkvs5_Upf0WVnuC7BM9rOyGI2GyaR1Ar4tYMXoIa_g8';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnbGVoaXJqc3hheHZycGZidnNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzIxOTA5NTUsImV4cCI6MjA0Nzc2Njk1NX0.GU_C-yBDLX82rXIJy4nQ7fYWwP17eX0FQy_EaMW-oJ0';
     
     return window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 }
@@ -208,6 +208,8 @@ async function filterMenuByRole() {
     
     // Find all menu links
     const selectors = [
+        '.nav-item',           // Direct nav-item links (your menu structure!)
+        '.sidebar-nav a',      // Links inside sidebar-nav
         '.sidebar a',
         '.menu a',
         'nav a',
@@ -268,18 +270,19 @@ async function filterMenuByRole() {
             visibleCount++;
             console.log(`   ✅ ${pageName} - visible`);
             
-            // Explicitly show the link
-            link.style.display = '';
+            // Remove inline display style to restore CSS default
+            link.style.removeProperty('display');
             
-            // Explicitly show parent elements
+            // Show parent elements (if they exist - not all menus have parent li)
             const parentLi = link.closest('li');
             if (parentLi) {
-                parentLi.style.display = '';
+                parentLi.style.removeProperty('display');
             }
             
-            const parentMenuItem = link.closest('.menu-item, .nav-item');
-            if (parentMenuItem) {
-                parentMenuItem.style.display = '';
+            // Don't hide parent if link itself has nav-item class
+            const parentMenuItem = link.closest('.menu-item');
+            if (parentMenuItem && !link.classList.contains('nav-item')) {
+                parentMenuItem.style.removeProperty('display');
             }
         } else {
             // User cannot view - hide it
@@ -294,8 +297,9 @@ async function filterMenuByRole() {
                 parentLi.style.display = 'none';
             }
             
-            const parentMenuItem = link.closest('.menu-item, .nav-item');
-            if (parentMenuItem) {
+            // Don't hide parent if link itself has nav-item class
+            const parentMenuItem = link.closest('.menu-item');
+            if (parentMenuItem && !link.classList.contains('nav-item')) {
                 parentMenuItem.style.display = 'none';
             }
         }
