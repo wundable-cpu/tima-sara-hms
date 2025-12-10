@@ -292,7 +292,7 @@ async function initializeAccessControl() {
         setTimeout(async () => {
             await filterMenuByRole();
             filterActionButtons();
-        }, 200);
+        }, 1000);
     }
     
     console.log('✅ Access control initialization complete');
