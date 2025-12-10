@@ -1,16 +1,25 @@
 // ===================================================================
-// DATABASE-DRIVEN ROLE ACCESS CONTROL
-// Reads permissions from role_permissions table in Supabase
+// SIMPLIFIED CLASS-BASED ACCESS CONTROL
+// Uses CSS classes instead of inline styles
 // ===================================================================
 
-console.log('🔐 DATABASE-DRIVEN ACCESS CONTROL LOADED');
+console.log('🔐 CLASS-BASED ACCESS CONTROL LOADED');
 
-// Cache for permissions (avoid repeated database calls)
+// Add CSS for hiding
+const style = document.createElement('style');
+style.textContent = `
+    .hms-hidden {
+        display: none !important;
+    }
+`;
+document.head.appendChild(style);
+
+// Cache for permissions
 let permissionsCache = null;
 let currentUserRole = null;
 
 /**
- * Get Supabase client (reuse existing or create new)
+ * Get Supabase client
  */
 async function getSupabaseClient() {
     if (typeof supabase !== 'undefined' && supabase && typeof supabase.from === 'function') {
@@ -21,7 +30,6 @@ async function getSupabaseClient() {
         return supabaseClient;
     }
     
-    // Create new client
     const SUPABASE_URL = 'https://yglehirjsxaxvrpfbvse.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnbGVoaXJqc3hheHZycGZidnNlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjA4MDU0MCwiZXhwIjoyMDc3NjU2NTQwfQ.Gkvs5_Upf0WVnuC7BM9rOyGI2GyaR1Ar4tYMXoIa_g8';
     
@@ -29,7 +37,7 @@ async function getSupabaseClient() {
 }
 
 /**
- * Load user permissions from database
+ * Load permissions
  */
 async function loadUserPermissions(userRole) {
     console.log('📥 Loading permissions for role:', userRole);
@@ -49,7 +57,6 @@ async function loadUserPermissions(userRole) {
         
         console.log('✅ Loaded', data.length, 'permissions for', userRole);
         
-        // Convert to easier lookup format
         const permissions = {};
         data.forEach(perm => {
             permissions[perm.page] = {
@@ -68,32 +75,23 @@ async function loadUserPermissions(userRole) {
 }
 
 /**
- * Map page filenames to database page names
+ * Map filename to page name
  */
 function getPageName(href) {
-    // Skip external links
     if (href.startsWith('http://') || href.startsWith('https://')) {
-        // Check if it's our domain
         if (!href.includes('timasarahotel.com')) {
-            return null; // External link - don't filter
+            return null;
         }
     }
     
-    // Extract just the filename from full URLs or paths
     let filename = href.split('/').pop().split('?')[0].split('#')[0];
     
-    // If empty or just anchor, skip
     if (!filename || filename === '') {
         return null;
     }
     
-    // Remove .html extension
-    filename = filename.replace('.html', '');
+    filename = filename.replace('.html', '').replace('admin-', '');
     
-    // Remove admin- prefix
-    filename = filename.replace('admin-', '');
-    
-    // Handle special cases
     const mappings = {
         'reservations-calendar': 'reservations',
         'calendar': 'reservations',
@@ -105,7 +103,7 @@ function getPageName(href) {
 }
 
 /**
- * Check if current user can access current page
+ * Check page access
  */
 async function checkPageAccess() {
     console.log('🔍 === CHECKING PAGE ACCESS ===');
@@ -120,17 +118,14 @@ async function checkPageAccess() {
     
     console.log('👤 Current user:', currentUser.name || currentUser.full_name, '| Role:', currentUser.role);
     
-    // Get current page
     const currentPage = window.location.pathname.split('/').pop();
     console.log('📄 Current page:', currentPage);
     
-    // Login page always accessible
     if (currentPage === 'admin-login.html' || currentPage === 'index.html' || currentPage === '') {
         console.log('✅ Public page - access granted');
         return true;
     }
     
-    // Load permissions if not cached or role changed
     if (!permissionsCache || currentUserRole !== currentUser.role) {
         permissionsCache = await loadUserPermissions(currentUser.role);
         currentUserRole = currentUser.role;
@@ -141,11 +136,9 @@ async function checkPageAccess() {
         return true;
     }
     
-    // Map filename to page name
     const pageName = getPageName(currentPage);
     console.log('🗂️ Page name:', pageName);
     
-    // Check permissions
     const pagePerms = permissionsCache[pageName];
     
     if (!pagePerms) {
@@ -155,20 +148,14 @@ async function checkPageAccess() {
     
     if (pagePerms.can_view) {
         console.log('✅ ACCESS GRANTED:', pageName, 'for role:', currentUser.role);
-        
-        // Store permissions in global for use by other scripts
         window.currentPagePermissions = pagePerms;
-        
         return true;
     }
     
-    // Access denied
     console.warn('❌ ACCESS DENIED:', pageName, 'for role:', currentUser.role);
     alert(`Access Denied!\n\nYou don't have permission to access this page.\n\nRole: ${currentUser.role}\nPage: ${pageName}`);
     
-    // Redirect to dashboard or login
     if (pageName === 'dashboard') {
-        // If even dashboard is denied, logout
         localStorage.removeItem('hms_user');
         window.location.href = 'admin-login.html';
     } else {
@@ -179,10 +166,10 @@ async function checkPageAccess() {
 }
 
 /**
- * Filter menu items based on permissions
+ * Filter menu - CLASS-BASED APPROACH
  */
 async function filterMenuByRole() {
-    console.log('🔍 === FILTERING MENU ===');
+    console.log('🔍 === FILTERING MENU (CLASS-BASED) ===');
     
     const currentUser = JSON.parse(localStorage.getItem('hms_user'));
     
@@ -193,7 +180,6 @@ async function filterMenuByRole() {
     
     console.log('👤 Filtering menu for role:', currentUser.role);
     
-    // Load permissions if not cached
     if (!permissionsCache || currentUserRole !== currentUser.role) {
         permissionsCache = await loadUserPermissions(currentUser.role);
         currentUserRole = currentUser.role;
@@ -206,34 +192,13 @@ async function filterMenuByRole() {
     
     console.log('📋 User has access to', Object.keys(permissionsCache).length, 'pages');
     
-    // Find all menu links
-    const selectors = [
-        '.nav-item',           // Direct nav-item links (your menu structure!)
-        '.sidebar-nav a',      // Links inside sidebar-nav
-        '.sidebar a',
-        '.menu a',
-        'nav a',
-        '.menu-item a',
-        '.nav-link',
-        '.sidebar-link',
-        'aside a',
-        '.main-menu a'
-    ];
-    
-    const allLinks = document.querySelectorAll(selectors.join(', '));
+    // Find all menu items - focus on nav-item class
+    const allLinks = document.querySelectorAll('.nav-item, .sidebar-nav a, .sidebar a, .menu a, nav a');
     console.log('🔗 Found', allLinks.length, 'menu links');
     
     if (allLinks.length === 0) {
-        console.warn('⚠️ NO MENU LINKS FOUND! Menu may not be loaded yet.');
+        console.warn('⚠️ NO MENU LINKS FOUND!');
         return;
-    }
-    
-    // Check if menu is visible at all
-    const firstLink = allLinks[0];
-    const menuContainer = firstLink.closest('.sidebar, .menu, nav, .main-menu, aside');
-    
-    if (menuContainer && menuContainer.offsetParent === null) {
-        console.warn('⚠️ Menu container is hidden (probably collapsed mobile menu) - filtering but items won\'t be visible until menu opens');
     }
     
     let hiddenCount = 0;
@@ -245,73 +210,42 @@ async function filterMenuByRole() {
             return;
         }
         
-        // Get filename and convert to page name
         const pageName = getPageName(href);
         
-        // If null (external link), keep visible
         if (pageName === null) {
             visibleCount++;
-            console.log(`   ℹ️ ${href} - external/anchor link - keeping visible`);
+            console.log(`   ℹ️ External link - keeping visible`);
             return;
         }
         
-        // Check if user has view permission
-        const hasPermission = permissionsCache[pageName]?.can_view;
-        
-        // If page not in permissions table, show it by default (for new pages)
         if (permissionsCache[pageName] === undefined) {
             visibleCount++;
-            console.log(`   ⚠️ ${pageName} - not in permissions table - showing by default`);
+            console.log(`   ⚠️ ${pageName} - not in permissions - showing by default`);
+            link.classList.remove('hms-hidden');
             return;
         }
         
+        const hasPermission = permissionsCache[pageName]?.can_view;
+        
         if (hasPermission) {
-            // User can view this page - keep visible
             visibleCount++;
-            console.log(`   ✅ ${pageName} - visible`);
-            
-            // Remove inline display style to restore CSS default
-            link.style.removeProperty('display');
-            
-            // Show parent elements (if they exist - not all menus have parent li)
-            const parentLi = link.closest('li');
-            if (parentLi) {
-                parentLi.style.removeProperty('display');
-            }
-            
-            // Don't hide parent if link itself has nav-item class
-            const parentMenuItem = link.closest('.menu-item');
-            if (parentMenuItem && !link.classList.contains('nav-item')) {
-                parentMenuItem.style.removeProperty('display');
-            }
+            console.log(`   ✅ ${pageName} - VISIBLE`);
+            link.classList.remove('hms-hidden');
         } else {
-            // User cannot view - hide it
             hiddenCount++;
-            console.log(`   🚫 ${pageName} - hiding`);
-            
-            link.style.display = 'none';
-            
-            // Hide parent elements
-            const parentLi = link.closest('li');
-            if (parentLi) {
-                parentLi.style.display = 'none';
-            }
-            
-            // Don't hide parent if link itself has nav-item class
-            const parentMenuItem = link.closest('.menu-item');
-            if (parentMenuItem && !link.classList.contains('nav-item')) {
-                parentMenuItem.style.display = 'none';
-            }
+            console.log(`   🚫 ${pageName} - HIDING`);
+            link.classList.add('hms-hidden');
         }
     });
     
     console.log('📊 Menu filtering complete:');
     console.log('   Visible:', visibleCount);
     console.log('   Hidden:', hiddenCount);
+    console.log('💡 Use hamburger menu to open sidebar and see filtered items');
 }
 
 /**
- * Show/hide action buttons based on permissions
+ * Filter action buttons
  */
 function filterActionButtons() {
     if (!window.currentPagePermissions) {
@@ -320,69 +254,75 @@ function filterActionButtons() {
     
     const perms = window.currentPagePermissions;
     
-    // Hide edit buttons if can't edit
     if (!perms.can_edit) {
         const editButtons = document.querySelectorAll('.btn-edit, [data-action="edit"], .edit-btn');
-        editButtons.forEach(btn => btn.style.display = 'none');
+        editButtons.forEach(btn => btn.classList.add('hms-hidden'));
     }
     
-    // Hide delete buttons if can't delete
     if (!perms.can_delete) {
         const deleteButtons = document.querySelectorAll('.btn-delete, [data-action="delete"], .delete-btn');
-        deleteButtons.forEach(btn => btn.style.display = 'none');
+        deleteButtons.forEach(btn => btn.classList.add('hms-hidden'));
     }
     
-    console.log('✅ Action buttons filtered:', 
-                'Edit:', perms.can_edit ? 'visible' : 'hidden',
-                'Delete:', perms.can_delete ? 'visible' : 'hidden');
+    console.log('✅ Action buttons filtered');
 }
 
 /**
- * Initialize access control
+ * Initialize - with retry logic
  */
 async function initializeAccessControl() {
-    console.log('🚀 === INITIALIZING DATABASE-DRIVEN ACCESS CONTROL ===');
+    console.log('🚀 === INITIALIZING ACCESS CONTROL ===');
     
-    // Check page access
     const hasAccess = await checkPageAccess();
     
     if (hasAccess) {
-        // Wait for menu to exist before filtering
         let attempts = 0;
         const maxAttempts = 10;
         
-        const waitForMenuAndFilter = async () => {
+        const waitAndFilter = async () => {
             attempts++;
             
-            // Check if menu exists
-            const menuExists = document.querySelectorAll('.sidebar a, .menu a, nav a, .main-menu a').length > 0;
+            const menuExists = document.querySelectorAll('.nav-item, .sidebar-nav a').length > 0;
             
             if (menuExists) {
-                console.log('✅ Menu found, filtering now...');
+                console.log('✅ Menu found - filtering now');
                 await filterMenuByRole();
                 filterActionButtons();
             } else if (attempts < maxAttempts) {
-                console.log(`⏳ Menu not found yet, retrying (${attempts}/${maxAttempts})...`);
-                setTimeout(waitForMenuAndFilter, 300);
+                console.log(`⏳ Menu not found - retry ${attempts}/${maxAttempts}`);
+                setTimeout(waitAndFilter, 300);
             } else {
-                console.warn('⚠️ Menu not found after', maxAttempts, 'attempts - skipping filter');
+                console.warn('⚠️ Menu not found after 10 attempts');
             }
         };
         
-        // Start checking for menu
-        setTimeout(waitForMenuAndFilter, 200);
+        setTimeout(waitAndFilter, 200);
     }
     
-    console.log('✅ Access control initialization complete');
+    console.log('✅ Access control initialized');
     console.log('═══════════════════════════════════════\n');
 }
 
-// Run on page load
+// Run on load
 document.addEventListener('DOMContentLoaded', initializeAccessControl);
 
-// Also run immediately if DOM already loaded
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeAccessControl);
 } else {
     initializeAccessControl();
 }
+
+// Force show EVERYTHING
+const sidebar = document.querySelector('.sidebar');
+const nav = document.querySelector('.sidebar-nav');
+const items = document.querySelectorAll('.nav-item');
+
+sidebar.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important; position: fixed !important; left: 0 !important; top: 0 !important; width: 250px !important; height: 100vh !important; transform: none !important;';
+
+nav.style.cssText = 'display: flex !important; flex-direction: column !important; visibility: visible !important; opacity: 1 !important; height: auto !important; max-height: none !important; overflow: visible !important;';
+
+items.forEach(item => {
+    item.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important; position: relative !important; height: auto !important;';
+});
+
+console.log('FORCED EVERYTHING VISIBLE - Check sidebar NOW!');
