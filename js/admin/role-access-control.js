@@ -70,18 +70,38 @@ async function loadUserPermissions(userRole) {
 /**
  * Map page filenames to database page names
  */
-function getPageName(filename) {
+function getPageName(href) {
+    // Skip external links
+    if (href.startsWith('http://') || href.startsWith('https://')) {
+        // Check if it's our domain
+        if (!href.includes('timasarahotel.com')) {
+            return null; // External link - don't filter
+        }
+    }
+    
+    // Extract just the filename from full URLs or paths
+    let filename = href.split('/').pop().split('?')[0].split('#')[0];
+    
+    // If empty or just anchor, skip
+    if (!filename || filename === '') {
+        return null;
+    }
+    
     // Remove .html extension
-    const name = filename.replace('.html', '').replace('admin-', '');
+    filename = filename.replace('.html', '');
+    
+    // Remove admin- prefix
+    filename = filename.replace('admin-', '');
     
     // Handle special cases
     const mappings = {
         'reservations-calendar': 'reservations',
-        'pos': 'pos',
-        'menu': 'menu'
+        'calendar': 'reservations',
+        'index': 'dashboard',
+        '': 'dashboard'
     };
     
-    return mappings[name] || name;
+    return mappings[filename] || filename;
 }
 
 /**
@@ -206,6 +226,14 @@ async function filterMenuByRole() {
         return;
     }
     
+    // Check if menu is visible at all
+    const firstLink = allLinks[0];
+    const menuContainer = firstLink.closest('.sidebar, .menu, nav, .main-menu, aside');
+    
+    if (menuContainer && menuContainer.offsetParent === null) {
+        console.warn('⚠️ Menu container is hidden (probably collapsed mobile menu) - filtering but items won\'t be visible until menu opens');
+    }
+    
     let hiddenCount = 0;
     let visibleCount = 0;
     
@@ -216,16 +244,43 @@ async function filterMenuByRole() {
         }
         
         // Get filename and convert to page name
-        const filename = href.split('/').pop().split('?')[0].split('#')[0];
-        const pageName = getPageName(filename);
+        const pageName = getPageName(href);
+        
+        // If null (external link), keep visible
+        if (pageName === null) {
+            visibleCount++;
+            console.log(`   ℹ️ ${href} - external/anchor link - keeping visible`);
+            return;
+        }
         
         // Check if user has view permission
         const hasPermission = permissionsCache[pageName]?.can_view;
+        
+        // If page not in permissions table, show it by default (for new pages)
+        if (permissionsCache[pageName] === undefined) {
+            visibleCount++;
+            console.log(`   ⚠️ ${pageName} - not in permissions table - showing by default`);
+            return;
+        }
         
         if (hasPermission) {
             // User can view this page - keep visible
             visibleCount++;
             console.log(`   ✅ ${pageName} - visible`);
+            
+            // Explicitly show the link
+            link.style.display = '';
+            
+            // Explicitly show parent elements
+            const parentLi = link.closest('li');
+            if (parentLi) {
+                parentLi.style.display = '';
+            }
+            
+            const parentMenuItem = link.closest('.menu-item, .nav-item');
+            if (parentMenuItem) {
+                parentMenuItem.style.display = '';
+            }
         } else {
             // User cannot view - hide it
             hiddenCount++;
@@ -288,11 +343,30 @@ async function initializeAccessControl() {
     const hasAccess = await checkPageAccess();
     
     if (hasAccess) {
-        // Filter menu (wait a bit for menu to load)
-        setTimeout(async () => {
-            await filterMenuByRole();
-            filterActionButtons();
-        }, 1000);
+        // Wait for menu to exist before filtering
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        const waitForMenuAndFilter = async () => {
+            attempts++;
+            
+            // Check if menu exists
+            const menuExists = document.querySelectorAll('.sidebar a, .menu a, nav a, .main-menu a').length > 0;
+            
+            if (menuExists) {
+                console.log('✅ Menu found, filtering now...');
+                await filterMenuByRole();
+                filterActionButtons();
+            } else if (attempts < maxAttempts) {
+                console.log(`⏳ Menu not found yet, retrying (${attempts}/${maxAttempts})...`);
+                setTimeout(waitForMenuAndFilter, 300);
+            } else {
+                console.warn('⚠️ Menu not found after', maxAttempts, 'attempts - skipping filter');
+            }
+        };
+        
+        // Start checking for menu
+        setTimeout(waitForMenuAndFilter, 200);
     }
     
     console.log('✅ Access control initialization complete');
