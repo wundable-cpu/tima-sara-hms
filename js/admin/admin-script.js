@@ -182,6 +182,61 @@ document.addEventListener('DOMContentLoaded', function() {
             attributeFilter: ['class']
         });
     }
+
+    async function handleLogin(e) {
+    e.preventDefault();
+    
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    
+    try {
+        // Get Supabase client
+        if (!supabaseClient) {
+            supabaseClient = await getSupabaseClient();
+        }
+        
+        // Query database for user
+        const { data: user, error } = await supabaseClient
+            .from('users')
+            .select('*')
+            .eq('email', email)
+            .eq('is_active', true)
+            .single();
+        
+        if (error || !user) {
+            throw new Error('Invalid email or password');
+        }
+        
+        // Check password (simple comparison for now)
+        if (user.password_hash !== password) {
+            throw new Error('Invalid email or password');
+        }
+        
+        // Update last login time
+        await supabaseClient
+            .from('users')
+            .update({ last_login: new Date().toISOString() })
+            .eq('id', user.id);
+        
+        // Store user session
+        localStorage.setItem('hms_user', JSON.stringify({
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            phone: user.phone
+        }));
+        
+        console.log('✅ Login successful:', user.name);
+        
+        // Redirect to dashboard
+        window.location.href = 'admin-dashboard.html';
+        
+    } catch (error) {
+        console.error('❌ Login error:', error);
+        alert('Login failed: ' + error.message);
+    }
+}
 });
 
 console.log('✅ Admin script loaded');

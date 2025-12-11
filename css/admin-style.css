@@ -5316,6 +5316,7 @@ Main Content:   z-index: 1   (BASE layer)*/
     font-weight: 600;
 }
 
+
 /* Mobile responsive adjustments */
 @media (max-height: 600px) {
     .sidebar-nav {
