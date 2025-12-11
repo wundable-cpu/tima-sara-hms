@@ -6012,11 +6012,41 @@ Main Content:   z-index: 1   (BASE layer)*/
     font-size: 12px;
 }
 
-/* FORCE NAV VISIBLE */
+/* ===================================================================
+   SIDEBAR NAV FIX - Add this to your admin-style.css
+   ===================================================================
+   This fixes the nav container being hidden/collapsed
+   =================================================================== */
+
+/* Force nav container visible */
 .sidebar-nav {
     display: flex !important;
     flex-direction: column !important;
     min-height: 300px !important;
     height: auto !important;
     flex: 1 !important;
+    overflow-y: auto !important;
+}
+
+/* Ensure nav items are visible */
+.sidebar-nav .nav-item {
+    display: flex !important;
+    align-items: center;
+    padding: 14px 25px;
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+}
+
+.sidebar-nav .nav-item:hover {
+    background: rgba(212, 175, 55, 0.1);
+    color: white;
+    border-left-color: var(--accent-gold);
+}
+
+.sidebar-nav .nav-item.active {
+    background: rgba(212, 175, 55, 0.15);
+    color: white;
+    border-left-color: var(--accent-gold);
 }
