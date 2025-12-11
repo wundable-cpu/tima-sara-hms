@@ -104,7 +104,9 @@
             
             const canView = permissions[pageName];
             
-            if (canView === undefined || canView === true) {
+            // IMPORTANT: Only show if explicitly allowed (canView === true)
+            // Hide if false OR undefined (not in permissions table)
+            if (canView === true) {
                 // Show item
                 link.classList.remove('hms-hidden');
                 shown++;
@@ -113,7 +115,7 @@
                 // Hide item
                 link.classList.add('hms-hidden');
                 hidden++;
-                console.log('  🚫', pageName);
+                console.log('  🚫', pageName, '(access:', canView, ')');
             }
         });
         
