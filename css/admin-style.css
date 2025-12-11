@@ -6011,3 +6011,12 @@ Main Content:   z-index: 1   (BASE layer)*/
     margin: 3px 0;
     font-size: 12px;
 }
+
+/* FORCE NAV VISIBLE */
+.sidebar-nav {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 300px !important;
+    height: auto !important;
+    flex: 1 !important;
+}
