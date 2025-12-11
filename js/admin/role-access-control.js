@@ -8,6 +8,30 @@
     
     console.log('🔐 Page-Level Access Control Active');
     
+    // FIX: Ensure sidebar-nav is visible on desktop
+    const style = document.createElement('style');
+    style.id = 'sidebar-nav-fix';
+    style.textContent = `
+        /* Force sidebar-nav visible on all screen sizes */
+        .sidebar-nav {
+            display: flex !important;
+            flex-direction: column !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            height: auto !important;
+            min-height: 300px !important;
+            overflow-y: auto !important;
+        }
+        
+        .sidebar-nav .nav-item {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+    `;
+    document.head.appendChild(style);
+    console.log('✅ Sidebar visibility fix applied');
+    
     // Supabase config
     const SUPABASE_URL = 'https://yglehirjsxaxvrpfbvse.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnbGVoaXJqc3hheHZycGZidnNlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjA4MDU0MCwiZXhwIjoyMDc3NjU2NTQwfQ.Gkvs5_Upf0WVnuC7BM9rOyGI2GyaR1Ar4tYMXoIa_g8';
