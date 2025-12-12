@@ -1,9 +1,9 @@
 // ===================================================================
-// DASHBOARD ANALYTICS INSIGHTS (GLOBAL VERSION)
+// DASHBOARD ANALYTICS INSIGHTS (CORRECTED - Uses guest_charges)
 // Exposes functions globally for compatibility
 // ===================================================================
 
-console.log('📊 Loading Dashboard Analytics Insights (Global)...');
+console.log('📊 Loading Dashboard Analytics Insights...');
 
 // Wait for page to be ready
 if (document.readyState === 'loading') {
@@ -117,7 +117,7 @@ async function loadGuestInsights() {
 }
 
 // ===================================================================
-// TOP SELLING ITEMS
+// TOP SELLING ITEMS (Using guest_charges table like Analytics page)
 // ===================================================================
 
 async function loadTopSellingItems() {
@@ -137,56 +137,52 @@ async function loadTopSellingItems() {
             return;
         }
         
-        // Fetch POS transactions
-        const { data: transactions, error } = await supabase
-            .from('pos_transactions')
+        // Fetch guest charges (F&B data) - SAME AS ANALYTICS PAGE
+        const { data: charges, error } = await supabase
+            .from('guest_charges')
             .select('*')
-            .order('created_at', { ascending: false })
-            .limit(500);
+            .order('charge_date', { ascending: false });
         
         if (error) {
-            console.error('Error fetching transactions:', error);
+            console.error('Error fetching guest charges:', error);
             throw error;
         }
         
-        console.log('📥 Loaded', transactions.length, 'transactions');
+        console.log('📥 Loaded', charges.length, 'guest charges');
         
-        if (transactions.length === 0) {
+        if (charges.length === 0) {
             container.innerHTML = `
                 <p style="text-align: center; color: #94a3b8; padding: 30px; font-size: 14px;">
-                    📊 No sales data available yet
+                    📊 No F&B sales data available yet
                 </p>
             `;
             return;
         }
         
-        // Parse and aggregate items
-        const itemSales = {};
+        // Group by item and calculate totals (SAME LOGIC AS ANALYTICS PAGE)
+        const items = {};
         
-        transactions.forEach(transaction => {
-            try {
-                const items = JSON.parse(transaction.items || '[]');
-                items.forEach(item => {
-                    const name = item.name;
-                    if (!itemSales[name]) {
-                        itemSales[name] = {
-                            quantity: 0,
-                            revenue: 0,
-                            category: item.category || 'Other'
-                        };
-                    }
-                    itemSales[name].quantity += item.quantity || 1;
-                    itemSales[name].revenue += (item.price || 0) * (item.quantity || 1);
-                });
-            } catch (e) {
-                // Skip invalid items
+        charges.forEach(charge => {
+            const itemName = charge.item_description;
+            const category = charge.category || 'Restaurant';
+            
+            if (itemName && itemName.trim()) {
+                if (!items[itemName]) {
+                    items[itemName] = {
+                        name: itemName,
+                        quantity: 0,
+                        revenue: 0,
+                        category: category
+                    };
+                }
+                items[itemName].quantity += parseInt(charge.quantity || 1);
+                items[itemName].revenue += parseFloat(charge.total_amount || 0);
             }
         });
         
-        // Convert to array and sort
-        const topItems = Object.entries(itemSales)
-            .map(([name, data]) => ({ name, ...data }))
-            .sort((a, b) => b.quantity - a.quantity)
+        // Convert to array and sort by revenue
+        const topItems = Object.values(items)
+            .sort((a, b) => b.revenue - a.revenue)
             .slice(0, 10);
         
         if (topItems.length === 0) {
@@ -198,7 +194,7 @@ async function loadTopSellingItems() {
             return;
         }
         
-        // Display items
+        // Display items with beautiful styling
         container.innerHTML = topItems.map((item, index) => `
             <div class="top-item" style="
                 display: flex;
