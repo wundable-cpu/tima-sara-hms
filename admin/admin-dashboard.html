@@ -6,6 +6,7 @@
     <title>Dashboard - Tima Sara Hotel Management</title>
     
     <link rel="stylesheet" href="../css/admin-style.css">
+    
     <style>
         /* Responsive Dashboard Fixes */
         .main-content {
@@ -24,12 +25,34 @@
         /* Second row: 2/3 + 1/3 layout for desktop */
         .dashboard-grid-bottom {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: 2fr 1fr;
             gap: 20px;
             margin-top: 20px;
         }
+
+        .card {
+           
+        }
+
+        
+        .dashboard-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+       }
+         
+        .card {
+          overflow-x: hidden;
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .stats-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 30px;
         
         /* Desktop: Monthly Trend (2/3) + Occupancy (1/3) side by side */
+
         @media (min-width: 768px) {
             .dashboard-grid-bottom {
                 grid-template-columns: 2fr 1fr;
@@ -278,10 +301,67 @@
                         </div>
                     </div>
                 </div>
+                
             </div>
 
         </div>
 
+ <!-- ============================================ -->
+        
+<!-- NEW: ANALYTICS INSIGHTS SECTION -->
+        
+<!-- ============================================ -->
+        
+           <div class="analytics-insights-section" style="margin-top: 40px;">
+             <h2>
+                📊 Quick Insights
+            </h2>
+            <p>
+                Key metrics for Front Desk and Restaurant staff
+            </p>
+
+            <div class="analytics-insights-grid">
+                
+                 <!-- Guest Statistics -->
+                <div class="chart-card">
+                     <div class="card-header">
+                       <h3>Guest Insights</h3>
+                    </div>
+                
+                  <div class="insights-list">
+                    <div class="insight-item">
+                         <span class="insight-label">New Guests</span>
+                         <span class="insight-value" id="newGuestsCount">0</span>
+                    </div>
+                      
+                    <div class="insight-item">
+                        <span class="insight-label">Returning Guests</span>
+                        <span class="insight-value" id="returningGuestsCount">0</span>
+                    </div>
+                    <div class="insight-item">
+                        <span class="insight-label">Avg Stay Duration</span>
+                        <span class="insight-value" id="avgStayDuration">0 nights</span>
+                     </div>
+                     <div class="insight-item">
+                          <span class="insight-label">Guest Satisfaction</span>
+                          <span class="insight-value">4.8 ⭐</span>
+                     </div>
+                  </div>
+                </div>
+            
+                
+                <!-- Top Selling Items -->
+                <div class="card">
+                        <h3 style="color: var(--primary-blue); margin-bottom: 20px;">
+                        🏆 Top Selling Items
+                        </h3>
+                    <div id="topSellingItems">
+                        <p style="text-align: center; color: var(--text-light); padding: 20px;">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+             
     </main>
 
     <!-- Scripts -->
@@ -292,7 +372,8 @@
     <script src="../js/admin/user-display-fix.js"></script>
      <!-- Role-Based Access Control -->
     <script src="../js/admin/role-access-control.js"></script>
-
+    <!-- NEW: Load Analytics Data for Dashboard Cards -->
+    <sript src="../js/admin/dashboard-analytics-insights.js"></sript>
     <!-- Password Change System -->
     <script src="../js/admin/password-change.js"></script>
 </body>
