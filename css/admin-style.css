@@ -6050,3 +6050,23 @@ Main Content:   z-index: 1   (BASE layer)*/
     color: white;
     border-left-color: var(--accent-gold);
 }
+
+/* ===== FORCE SIDEBAR NAV VISIBLE ON DESKTOP ===== */
+@media (min-width: 769px) {
+    .sidebar-nav {
+        display: flex !important;
+        flex-direction: column !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        height: auto !important;
+        min-height: 300px !important;
+        max-height: none !important;
+        overflow-y: auto !important;
+    }
+    
+    .sidebar-nav .nav-item {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+}

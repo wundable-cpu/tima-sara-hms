@@ -1,0 +1,27 @@
+/* ==========================================================
+   ROLE FILTER OVERRIDE CSS (Loaded LAST in HTML)
+   This file ensures the hms-hidden class has absolute priority.
+   ========================================================== */
+
+/* Target the filtered link and its children with maximum priority */
+.sidebar a.nav-item.hms-hidden { 
+    display: none !important; 
+    visibility: hidden !important; 
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    /* Clean up residual colors/borders */
+    border-left: none !important; 
+    background: none !important; 
+}
+
+.sidebar a.nav-item.hms-hidden * { 
+    display: none !important; 
+    visibility: hidden !important; 
+}
+
+/* Ensure the main nav container maintains vertical display on all devices */
+.sidebar-nav {
+    display: flex !important;
+    flex-direction: column !important;
+}

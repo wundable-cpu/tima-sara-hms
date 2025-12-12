@@ -512,6 +512,7 @@ async function calculateMonthOccupancy(year, month) {
     }
 }
 
+
 // Setup logout
 function setupLogout() {
     document.getElementById('logoutBtn')?.addEventListener('click', function() {

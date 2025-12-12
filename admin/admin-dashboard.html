@@ -30,10 +30,20 @@
             margin-top: 20px;
         }
 
-        .card {
-           
-        }
+        /* NEW: Analytics Cards Section */
 
+        
+    .analytics-insights-section {
+               margin-top: 30px;
+       }
+           
+    .analytics-insights-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-top: 20px;
+       }
+             
         
         .dashboard-section {
             display: grid;
@@ -313,10 +323,10 @@
 <!-- ============================================ -->
         
            <div class="analytics-insights-section" style="margin-top: 40px;">
-             <h2>
+             <h2 style="color: var(--primary-blue); margin-bottom: 10px; font-size: 22px;">
                 📊 Quick Insights
             </h2>
-            <p>
+            <p style="color:#718096; margin-bottom: 20px; font-size: 14px;">
                 Key metrics for Front Desk and Restaurant staff
             </p>
 
@@ -368,12 +378,13 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../js/admin/admin-script.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+     <!-- NEW: Load Analytics Data for Dashboard Cards -->
+    <sript src="../js/admin/dashboard-analytics-insights.js"></sript>
     <script src="../js/admin/admin-dashboard.js"></script>
     <script src="../js/admin/user-display-fix.js"></script>
      <!-- Role-Based Access Control -->
     <script src="../js/admin/role-access-control.js"></script>
-    <!-- NEW: Load Analytics Data for Dashboard Cards -->
-    <sript src="../js/admin/dashboard-analytics-insights.js"></sript>
+   
     <!-- Password Change System -->
     <script src="../js/admin/password-change.js"></script>
 </body>
